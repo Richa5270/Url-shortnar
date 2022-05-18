@@ -6,5 +6,8 @@ router.post("/url/shorten",urlController.shortenUrl)
 router.get("/:urlCode",urlController.getUrl)
 
 
+// router.post('/authors', authorController.createAuthor)
+// router.get('/authors/:authorId', authorController.fetchAuthorProfile)
+
 module.exports=router;
 
