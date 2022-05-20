@@ -9,7 +9,7 @@ const isValid = function (value) {
     return true;
   };
 
-  
+ 
   //Connect to redis
   const redisClient = redis.createClient(
     16772,
@@ -48,14 +48,18 @@ const shortenUrl=async function (req,res) {
         if (!validUrl.isWebUri(longUrl)) {
             return res.status(400).send({status:false,message:'please provide a valid url'})
         }
-        let cachedData = await GET_ASYNC(`${longUrl.longUrl}`)
+
+        let cachedData = await GET_ASYNC(`${longUrl}`)
         if (cachedData) { 
-            console.log(cachedData)
-            return res.status(200).send({ status: true, data: JSON.parse(cachedData) }) 
+            // console.log(cachedData)
+            let obj=JSON.parse(cachedData)
+            // console.log(obj)
+            console.log("Data from cache!!")
+            return res.status(200).send({ status: true,message:'already shortUrl created', data:obj}) 
            }
         const checkUrl=await urlModel.findOne({longUrl:longUrl})
         if(checkUrl){
-            return res.status(400).send({status:false, message:'this url already exist'})
+            return res.status(200).send({status:true,message:'from DB',data:checkUrl})
         }    
         
         const urlCode=shortId.generate()
@@ -73,9 +77,15 @@ const shortenUrl=async function (req,res) {
         //console.log('quering from MongoDB server')
         console.log('==========')
         const createdData=await urlModel.create(data)
-        // await SET_ASYNC(`${longUrl}`, JSON.stringify(data), "EX", 120);
-        await SET_ASYNC(`${longUrl}`, JSON.stringify(createdData), "EX", 120)
-
+        // await SET_ASYNC(`${longUrl}`, JSON.stringify(createdData))
+        redisClient.set(`${longUrl}`, JSON.stringify(createdData),function (err,reply) {
+            if(err) throw err;
+            redisClient.expire(`${longUrl}`, 20, function (err, reply) {
+              if(err) throw err;
+              console.log(reply);
+            });
+        })
+        console.log('data created in mongoDb server')
         return res.status(201).send({status:true,data:createdData})
     } catch (error) {
         return res.status(500).send({status:false,message:error.message})
@@ -103,8 +113,7 @@ const getUrl=async function (req,res) {
         if(!url){
             return res.status(404).send({status:false,message:'no url found with this code,please check input and try again'})
         }
-        // const storeData=await SET_ASYNC(`${urlCode}`, JSON.stringify(url.longUrl), "EX", 10)
-        // console.log(`from mongodb server:${storeData}`)
+        //
 
         redisClient.set(`${urlCode}`, JSON.stringify(url.longUrl),function (err,reply) {
             if(err) throw err;
