@@ -48,12 +48,11 @@ const shortenUrl=async function (req,res) {
         if (!validUrl.isWebUri(longUrl)) {
             return res.status(400).send({status:false,message:'please provide a valid url'})
         }
-        let cahcedProfileData = await GET_ASYNC(`${longUrl}`)
-        if(cahcedProfileData) {
-            console.log('cache data')
-            console.log('==========')
-            return res.status(200).send(JSON.parse(cahcedProfileData),"EX",10)
-        }
+        let cachedData = await GET_ASYNC(`${longUrl.longUrl}`)
+        if (cachedData) { 
+            console.log(cachedData)
+            return res.status(200).send({ status: true, data: JSON.parse(cachedData) }) 
+           }
         const checkUrl=await urlModel.findOne({longUrl:longUrl})
         if(checkUrl){
             return res.status(400).send({status:false, message:'this url already exist'})
@@ -74,8 +73,9 @@ const shortenUrl=async function (req,res) {
         //console.log('quering from MongoDB server')
         console.log('==========')
         const createdData=await urlModel.create(data)
-        await SET_ASYNC(`${longUrl}`,"EX",50, JSON.stringify(data), "Ex",50);
-        console.log('quering from MongoDB server')
+        // await SET_ASYNC(`${longUrl}`, JSON.stringify(data), "EX", 120);
+        await SET_ASYNC(`${longUrl}`, JSON.stringify(createdData), "EX", 120)
+
         return res.status(201).send({status:true,data:createdData})
     } catch (error) {
         return res.status(500).send({status:false,message:error.message})
@@ -88,11 +88,13 @@ const shortenUrl=async function (req,res) {
 const getUrl=async function (req,res) {
     try {
         const urlCode=req.params.urlCode
-        if (Object.keys(urlCode)==0) {
+        if (Object.keys(urlCode)==0) { 
             return res.status(400).send({status:false,message:'please provide url code in params'})
         }
         let cahcedProfileData = await GET_ASYNC(`${urlCode}`)
+      
         if(cahcedProfileData) {
+            // console.log(`cache data:${cahcedProfileData}`)
             console.log('cache data')
             console.log('==========')
             return res.status(302).redirect(JSON.parse(cahcedProfileData))
@@ -101,6 +103,16 @@ const getUrl=async function (req,res) {
         if(!url){
             return res.status(404).send({status:false,message:'no url found with this code,please check input and try again'})
         }
+        // const storeData=await SET_ASYNC(`${urlCode}`, JSON.stringify(url.longUrl), "EX", 10)
+        // console.log(`from mongodb server:${storeData}`)
+
+        redisClient.set(`${urlCode}`, JSON.stringify(url.longUrl),function (err,reply) {
+            if(err) throw err;
+            redisClient.expire(`${urlCode}`, 10, function (err, reply) {
+              if(err) throw err;
+              console.log(reply);
+            });
+        })
         console.log('quering from MongoDB server')
         console.log('==========')
         await SET_ASYNC(`${urlCode}`, JSON.stringify(url.longUrl),"EX",30)
@@ -111,18 +123,5 @@ const getUrl=async function (req,res) {
     }
 }
 
-// const fetchUrlProfile = async function (req, res) {
-//     const urlCode=req.params.urlCode
-//     let cahcedProfileData = await GET_ASYNC(`${req.params.urlCode}`)
-//     if(cahcedProfileData) {
-//       res.send(cahcedProfileData)
-//     } else {
-//       let url = await urlModel.findOne({urlCode:urlCode});
-//       await SET_ASYNC(`${urlCode}`, JSON.stringify(url.longUrl),)
-//     //   res.send({ data: profile });
-//       res.status(302).redirect(profile.longUrl)
-//     }
-  
-//   };
 
 module.exports={shortenUrl,getUrl};
