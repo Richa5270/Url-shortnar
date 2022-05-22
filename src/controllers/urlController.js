@@ -48,12 +48,7 @@ const shortenUrl=async function (req,res) {
         if (!validUrl.isWebUri(longUrl)) {
             return res.status(400).send({status:false,message:'please provide a valid url'})
         }
-        // if (!/((([A-Za-z]{3,9}:(?:\/\/)?)(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)((?:\/[\+~%\/\.\w\-_]*)?\??(?:[\-\+=&;%@\.\w_]*)#?(?:[\.\!\/\\\w]*))?)/.test(longUrl)) {
-        //     return res
-        //       .status(400)
-        //       .send({ status: false, data: "plz enter a valid longUrl" });
-        //   }
-
+        
         let cachedData = await GET_ASYNC(`${longUrl}`)
         if (cachedData) { 
             //console.log(cachedData)
