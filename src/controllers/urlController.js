@@ -12,11 +12,11 @@ const isValid = function (value) {
  
   //Connect to redis
   const redisClient = redis.createClient(
-    16772,
-    "redis-16772.c264.ap-south-1-1.ec2.cloud.redislabs.com", 
+    16099,
+    "redis-16099.c212.ap-south-1-1.ec2.cloud.redislabs.com", 
     { no_ready_check: true }
   );
-  redisClient.auth("GFWahgVJ6WdpO19O8aWa17EQ0pCpoTCj",  function (err) {
+  redisClient.auth("w2tuHIQE0H55gOaqYC2cHyDv0wDfXfFz",  function (err) {
     if (err) throw err;
   });
   
@@ -48,10 +48,15 @@ const shortenUrl=async function (req,res) {
         if (!validUrl.isWebUri(longUrl)) {
             return res.status(400).send({status:false,message:'please provide a valid url'})
         }
+        // if (!/((([A-Za-z]{3,9}:(?:\/\/)?)(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)((?:\/[\+~%\/\.\w\-_]*)?\??(?:[\-\+=&;%@\.\w_]*)#?(?:[\.\!\/\\\w]*))?)/.test(longUrl)) {
+        //     return res
+        //       .status(400)
+        //       .send({ status: false, data: "plz enter a valid longUrl" });
+        //   }
 
         let cachedData = await GET_ASYNC(`${longUrl}`)
         if (cachedData) { 
-            // console.log(cachedData)
+            //console.log(cachedData)
             let obj=JSON.parse(cachedData)
             // console.log(obj)
             console.log("Data from cache!!")
@@ -67,17 +72,10 @@ const shortenUrl=async function (req,res) {
         data['shortUrl']=shortUrl
         data['urlCode']=urlCode
 
-        // redisClient.set(`${longUrl}`, JSON.stringify(data),function (err,reply) {
-        //     if(err) throw err;
-        //     redisClient.expire(`${data}`, 10, function (err, reply) {
-        //       if(err) throw err;
-        //       console.log(reply);
-        //     });
-        // })
-        //console.log('quering from MongoDB server')
+       
         console.log('==========')
         const createdData=await urlModel.create(data)
-        // await SET_ASYNC(`${longUrl}`, JSON.stringify(createdData))
+         //await SET_ASYNC(`${longUrl}`, JSON.stringify(createdData))
         redisClient.set(`${longUrl}`, JSON.stringify(createdData),function (err,reply) {
             if(err) throw err;
             redisClient.expire(`${longUrl}`, 20, function (err, reply) {
